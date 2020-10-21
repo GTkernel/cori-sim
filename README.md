@@ -1,6 +1,6 @@
-# Cori: Tuner of periodic page schedulers over hybrid memory systems
+# Cori: Tuner of hybrid memory periodic page schedulers
 
-## Input
+## Memory Access Trace Collection
 Memory access trace collected following the instructions in `traces/`
 
 ## Run Cori

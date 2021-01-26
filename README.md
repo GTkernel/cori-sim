@@ -18,6 +18,8 @@ python vis_trace_heatmap.py <path_to_trace> <out.csv> <number of memory access p
 ```
 ## Paper reference
 <b>Tuning the Frequency of Periodic Data Movements over Hybrid Memory Systems</b>
+
 Thaleia Dimitra Doudali, Daniel Zahka, Ada Gavrilovska
+
 [https://arxiv.org/abs/2101.07200](https://arxiv.org/abs/2101.07200)
 

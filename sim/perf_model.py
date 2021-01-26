@@ -1,5 +1,5 @@
+import csv
 from profile import *
-from scheduler import *
 
 class Platform:
   def __init__(self, name, local_lat, rem_lat, local_bw, rem_bw, period_cost, migr_cost):
@@ -24,6 +24,9 @@ class PerfModel:
   def init(self):
     self.set_platform()
     self.profile.scheduler.init(self.profile.traffic, self.profile.hmem, self.policy, self.num_reqs_per_period, self.cap_ratio)
+  
+  def init_hybrid(self, oracle_page_ids):
+    self.profile.hmem.init_hybrid(oracle_page_ids)
 
   def set_platform(self):
     # Default simulation parameters
@@ -45,6 +48,12 @@ class PerfModel:
     self.profile.scheduler.run()
     self.compute_baselines()
     self.compute_perf()
+    self.compute_other_metrics()
+  
+  def dump_stats(self, resfile):
+    w = csv.writer(open(resfile, "w"))
+    for key, val in self.stats.items():
+      w.writerow([key, val])
 
   def compute_perf(self):
     self.stats['Fast_Hitrate'] = round((self.profile.scheduler.l1_hits / float(self.profile.traffic.num_reqs)) * 100.0, 2)
@@ -63,8 +72,15 @@ class PerfModel:
     
     self.stats['Runtime'] = self.stats['Fast_Part_of_Runtime'] + self.stats['Slow_Part_of_Runtime'] + self.stats['Period_Overhead'] + self.stats['Migration_Overhead'] + self.stats['Queue_Overhead']
     self.stats['Slowdown_from_all_fast'] = round(((self.stats['Runtime'] / self.stats['All_Fast_Runtime']) - 1) * 100.0, 2)
+    
+  def compute_other_metrics(self):
     self.stats['Period_Duration'] = self.profile.scheduler.num_reqs_per_ep
     self.stats['Number_of_Periods'] = self.profile.scheduler.num_periods
+    self.stats['Num_Pages'] = self.profile.hmem.num_pages
+    self.stats['Num_Pages_Misplaced'] = sum([page.misplacements > 0 for page in self.profile.hmem.page_list])
+    self.stats['Policy'] = self.profile.scheduler.policy
+    self.stats['Num_Pages_Under_Oracle'] = len(self.profile.hmem.oracle_page_ids)
+    self.stats['Num_Patterns'] = self.profile.hmem.num_patterns
 
   def compute_single_tiering(self, lat, bw):
     bytes_transferred = self.profile.traffic.num_reqs * 64

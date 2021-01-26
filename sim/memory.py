@@ -6,7 +6,10 @@ class Page:
     self.req_ids = []
     self.pc_ids = []
     self.reuse_dist = []
+    self.misplacements = 0
     self.oracle_counts_ep = []
+    self.oracle_counts_binned_ep = []
+    self.pred_counts_binned_ep = []
     self.counts_ep = []
     self.loc_ep = []
     
@@ -21,8 +24,16 @@ class AddressSpace:
     self.l1_ratio = 0
     self.l1_pages = 0
     self.lru_list = []
-    self.policy = []
-    self.num_pages_misplaced = 0
+    self.policy = ''
+    self.oracle_page_ids = set()
+    self.num_patterns = 0
+
+  def set_patterns(self):
+    distinct_page_cnts_seq = set()
+    for page in self.page_list:
+      if str(page.oracle_counts_binned_ep) not in distinct_page_cnts_seq:
+        distinct_page_cnts_seq.add(str(page.oracle_counts_binned_ep))
+    self.num_patterns = len(distinct_page_cnts_seq)
 
   def populate(self, traffic):
     # init space
@@ -42,8 +53,14 @@ class AddressSpace:
     for page in self.page_list:
       page.counts_ep = np.zeros(num_periods)
       page.loc_ep = np.zeros(num_periods)
+      page.pred_counts_binned_ep = np.zeros(num_periods)
+      page.misplacements = 0
     self.lru_list = [page.id for page in self.page_list]
     self.policy = policy
+    self.oracle_page_ids = set()
+    
+  def init_hybrid(self, oracle_page_ids):
+    self.oracle_page_ids = set(oracle_page_ids)
     
   def init_tier(self, l1_ratio):
     self.l1_ratio = l1_ratio
@@ -87,28 +104,32 @@ class AddressSpace:
     for page in self.page_list:
       pcnt = 0
       if policy == 'history':
-        pcnt = page.oracle_counts_ep[curr_ep - 1]
-      elif policy == 'history-touch':
-        pcnt = page.oracle_counts_ep[curr_ep - 1]
-        if pcnt > 0:
-          pcnt = 1
+        pcnt = page.oracle_counts_binned_ep[curr_ep - 1]
       elif policy == 'oracle':
-        pcnt = page.oracle_counts_ep[curr_ep]
+        pcnt = page.oracle_counts_binned_ep[curr_ep]
+      elif policy == 'hybrid' or policy == 'hybrid-group':
+        if page.id in self.oracle_page_ids:
+          pcnt = page.oracle_counts_binned_ep[curr_ep]
+        else:
+          pcnt = page.oracle_counts_binned_ep[curr_ep - 1]
       if pcnt != 0: # consider pages that are touched in this period
         hot_page_ids.append(page.id)
         hot_page_cnts.append(pcnt)
+      page.pred_counts_binned_ep[curr_ep] = pcnt
     # sort
     sorted_idxs = np.argsort(hot_page_cnts)[::-1]
     sorted_hot_page_ids = [hot_page_ids[i] for i in sorted_idxs]
-    if policy == 'history-touch': # go through pages in order
-      sorted_hot_page_ids = hot_page_ids
     npages = 0
     page_id = 0
     l2_hot_pages_to_move = []
     while npages < self.l1_pages and npages < len(sorted_hot_page_ids):
       page = self.page_list[sorted_hot_page_ids[page_id]]
+      # this page is misplaced definitely due to capacity
       if page.loc_ep[curr_ep-1] == 1:
         l2_hot_pages_to_move.append(page.id)
+        # if the scheduler mispredicted its access count, the page is misplaced due to the page scheduler's effectiveness
+        if page.pred_counts_binned_ep[curr_ep] != page.oracle_counts_binned_ep[curr_ep]:
+          page.misplacements += 1
       npages += 1
       page_id += 1
     return l2_hot_pages_to_move

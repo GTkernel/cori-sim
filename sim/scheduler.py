@@ -26,6 +26,7 @@ class Scheduler:
     self.memory.init_cnts(self.num_periods, policy)
     self.memory.init_tier(self.l1_ratio)
     self.set_oracle_cnts()
+    self.memory.set_patterns()
     print "[Scheduler] Initialization done for policy =", self.policy, "periods =", self.num_periods, "reqs per period =", self.num_reqs_per_ep, "cap ratio =", self.l1_ratio
 
   def set_oracle_cnts(self):
@@ -38,6 +39,10 @@ class Scheduler:
           ep += 1
       page = self.memory.page_list[req.page_id]
       page.oracle_counts_ep[ep] += 1
+    for page in self.memory.page_list:
+      bins = range(0, int(max(page.oracle_counts_ep)), 20)
+      idxs = np.digitize(page.oracle_counts_ep, bins)
+      page.oracle_counts_binned_ep = [bins[idxs[i]-1] for i in range(len(page.oracle_counts_ep))]
 
   def run(self):
     for req in self.traffic.req_seq:

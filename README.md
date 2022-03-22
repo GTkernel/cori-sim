@@ -19,9 +19,10 @@ The accuracy of the simulator has been validated with Intel's Optane Persistent 
 python vis_trace_heatmap.py <path_to_trace> <out.csv> <number of memory access per period> 
 ```
 ## Paper reference
-<b>Tuning the Frequency of Periodic Data Movements over Hybrid Memory Systems</b>
 
-Thaleia Dimitra Doudali, Daniel Zahka, Ada Gavrilovska
+<b>Cori: Dancing to the Right Beat of Periodic Data Movements over Hybrid Memory Systems.</b><br/>
+Thaleia Dimitra Doudali, Daniel Zahka, Ada Gavrilovska. <br/>
+In Proceedings of the 35th IEEE International Parallel and Distributed Processing Symposium (IPDPS 2021).
 
-[https://arxiv.org/abs/2101.07200](https://arxiv.org/abs/2101.07200)
+Extended version: [https://arxiv.org/abs/2101.07200](https://arxiv.org/abs/2101.07200)
 
